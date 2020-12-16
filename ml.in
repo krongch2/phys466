@@ -15,8 +15,13 @@ read_data   ${f_coor}
 # Interaction potential for carbon atoms
 ######################## Potential defition ########################
 pair_style       hybrid/overlay  rebo kolmogorov/crespi/full 16.0 1
+<<<<<<< HEAD
 pair_coeff       * *   rebo                               CH.rebo        C # chemical
 pair_coeff       * *   kolmogorov/crespi/full   CH_taper.KC   C # long-range
+=======
+pair_coeff       * *   rebo                               /ccs/home/krongch2/phys466/potentials/CH.rebo        C # chemical
+pair_coeff       * *   kolmogorov/crespi/full   /ccs/home/krongch2/phys466/potentials/CH_taper.KC   C # long-range
+>>>>>>> 178d17af2213b16a38e2d31888062f6cc93afeab
 ####################################################################
 
 neighbor        2.0 bin

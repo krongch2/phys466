@@ -6,12 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from phonolammps import Phonolammps
 import phonopy
+import numpy as np
+
 
 def test():
 
     os.chdir('data')
 
-    with open('lammps2.lsf', 'w') as f:
+    with open('lammps.lsf', 'w') as f:
         f.write(
 '''#!/bin/bash
 #BSUB -P mat221
@@ -21,7 +23,7 @@ def test():
 #BSUB -o lsf.%J
 #BSUB -e lsf.%J
 
-module load lammps/master
+# module load lammps/master
 
 # jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp -in data/dipole.in > data/dipole.out
 jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp -in dipole.in > dipole.out
@@ -32,6 +34,17 @@ jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp -in di
     os.chdir('..')
 
 
+# module load gcc/7.4.0
+
+# jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp -in data/dipole.in > data/dipole.out
+# jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp_mpi -in dipole.in > dipole.out
+# jsrun -n 1 -a 1 -g 1 -c 1 lmp -in dipole.in > dipole.out
+''')
+
+    os.system('bsub lammps.lsf')
+    os.chdir('..')
+
+>>>>>>> 178d17af2213b16a38e2d31888062f6cc93afeab
 def writeLammpsData(f_coor,coor,a1,a2):
     f = open(f_coor,'w+')
 
@@ -77,9 +90,13 @@ def run_ml():
     # teng, ecoh = np.genfromtxt(flenergy, delimiter=', ')
 
     # coor, teng = monolayerenergy(coords, a, b)
+<<<<<<< HEAD
     os.system('cp ml.in data')
     os.system('cp potentials/CH.rebo data')
     os.system('cp potentials/CH_taper.KC data')
+=======
+    os.system('cp ml.in data/')
+>>>>>>> 178d17af2213b16a38e2d31888062f6cc93afeab
 
     os.chdir('data')
 
@@ -96,6 +113,7 @@ def run_ml():
     flenergy = 'energy_mlenergy.out'
 
 
+<<<<<<< HEAD
 #     with open('lammps.lsf', 'w') as f:
 #         f.write(
 # f'''#!/bin/bash
@@ -225,5 +243,105 @@ phonolammps in.graphene --dim 2 2 2 -c POSCAR_unitcell
 
     os.system('sbatch tblg.slurm')
 
-# preprocess()
-postprocess()
+#     with open('lammps.lsf', 'w') as f:
+#         f.write(
+# f'''#!/bin/bash
+# #BSUB -P mat221
+# #BSUB -W 15
+# #BSUB -nnodes 1
+# #BSUB -J lmp
+# #BSUB -o lsf.%J
+# #BSUB -e lsf.%J
+
+# module load gcc/7.4.0
+
+# # jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp -in data/dipole.in > data/dipole.out
+# # jsrun --smpiargs="-gpu" -n1 -g6 -c42 -a6 --bind=proportional-packed:7 lmp -in dipole.in > dipole.out
+# jsrun -n 1 -a 1 -g 1 -c 1 lmp_mpi -var f_coor {flcoor} -var flout_all {flout} -var fl_energy {flenergy} -in ml.in > ml.out
+# ''')
+
+    # os.system('bsub lammps.lsf')
+    # os.chdir('..')
+
+def test_phonolammps():
+    os.chdir('data')
+
+    with open('data.si', 'w') as f:
+        f.write(
+'''Generated using dynaphopy
+
+8 atoms
+
+1 atom types
+
+0.0000000000         5.4500000000 xlo xhi
+0.0000000000         5.4500000000 ylo yhi
+0.0000000000         5.4500000000 zlo zhi
+0.0000000000         0.0000000000         0.0000000000 xy xz yz
+
+Masses
+
+1        28.0855000000
+
+Atoms
+
+1 1         4.7687500000         4.7687500000         4.7687500000
+2 1         4.7687500000         2.0437500000         2.0437500000
+3 1         2.0437500000         4.7687500000         2.0437500000
+4 1         2.0437500000         2.0437500000         4.7687500000
+5 1         0.6812500000         0.6812500000         0.6812500000
+6 1         0.6812500000         3.4062500000         3.4062500000
+7 1         3.4062500000         0.6812500000         3.4062500000
+8 1         3.4062500000         3.4062500000         0.6812500000
+''')
+
+    with open('si.in', 'w') as f:
+        f.write(
+'''
+units       metal
+
+boundary    p p p
+
+box tilt large
+
+atom_style      atomic
+
+read_data       data.si
+
+pair_style      tersoff
+pair_coeff      * * SiCGe.tersoff  Si(C)
+
+neighbor    0.3 bin
+''')
+
+    supercell = [[2, 0, 0], [0, 2, 0], [0, 0, 2]]
+    print(supercell)
+    phlammps = Phonolammps('si.in', supercell_matrix=supercell)
+    print(phlammps)
+
+
+    unitcell = phlammps.get_unitcell()
+    force_constants = phlammps.get_force_constants()
+    supercell_matrix = phlammps.get_supercell_matrix()
+    print(unitcell)
+    print(force_constants)
+    print(supercell_matrix)
+
+    os.chdir('..')
+    return
+
+    phonon = Phonopy(unitcell, supercell_matrix)
+
+    phonon.set_force_constants(force_constants)
+    phonon.set_mesh([20, 20, 20])
+
+    phonon.set_total_DOS()
+    phonon.plot_total_DOS().show()
+
+    phonon.set_thermal_properties()
+    phonon.plot_thermal_properties().show()
+
+# test_phonolammps()
+
+
+
