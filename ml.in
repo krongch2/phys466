@@ -1,0 +1,64 @@
+#Read Reconstructed grain boundary file and then minimize
+
+#Input for Energy Minimization
+
+units       metal
+dimension   3
+boundary    p p p
+atom_style  full
+box tilt large
+
+#Read in Bottom Atoms
+read_data   ${f_coor}
+
+# ------Force Fields --------
+# Interaction potential for carbon atoms
+######################## Potential defition ########################
+pair_style       hybrid/overlay  rebo kolmogorov/crespi/full 16.0 1
+pair_coeff       * *   rebo                               CH.rebo        C # chemical
+pair_coeff       * *   kolmogorov/crespi/full   CH_taper.KC   C # long-range
+####################################################################
+
+neighbor        2.0 bin
+neigh_modify    delay 0 one 10000
+
+#Delete overlapping atoms
+delete_atoms overlap 0.4 all all
+
+write_dump all atom inittest1yf.xyz
+
+# ---------- Simulation Process ---------
+# Initial velocities at a given temperature
+
+# Timestep to make the integration of the motion equation
+timestep        0.0005
+
+# Parameters to print out on the screen and log.lammps file
+thermo_style    custom step temp etotal vol lx ly lz press pxx pyy pzz cpu
+thermo          1000
+
+# Saving atomic coordinates
+#dump           1 all xyz 10 /Users/emilannevelink/Documents/Data/${fNameout_all}_*.xyz
+#dump_modify        1 element C C C
+
+group top type 1
+group bot type 2
+
+fix topave  top aveforce NULL NULL 0.0
+fix botave  bot aveforce NULL NULL 0.0
+
+# Energy minimization parameters
+min_style       fire
+minimize        1e-15 1e-12 100000 10000
+
+write_dump all xyz  ${flout_all} #modify    element C
+
+
+variable teng equal "pe"
+variable natoms equal "count(all)"
+variable ecoh equal "v_teng/v_natoms"
+print "${teng}, ${ecoh}" file ${fl_energy}
+
+
+# ------ Simulation done -------
+print           "Simulation Complete"
