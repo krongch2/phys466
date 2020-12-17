@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import matplotlib
 matplotlib.use('Agg')
@@ -131,8 +132,8 @@ def run_ml():
 # jsrun -n 1 -a 1 -g 1 -c 1 lmp -var f_coor {flcoor} -var flout_all {flout} -var fl_energy {flenergy} -in ml.in > ml.out
 # ''')
 #     os.system('bsub lammps.lsf')
-    os.system(f'mpirun -np 4 lmp_mpi -var f_coor {flcoor} -var flout_all {flout} -var fl_energy {flenergy} -in ml.in > ml.out')
-    os.chdir('..')
+    # os.system(f'mpirun -np 4 lmp_mpi -var f_coor {flcoor} -var flout_all {flout} -var fl_energy {flenergy} -in ml.in > ml.out')
+    # os.chdir('..')
 
 # run_ml()
 
@@ -224,8 +225,19 @@ def postprocess():
     # phonon.plot_total_DOS().show()
 
     phonon.set_thermal_properties()
+    tp_dict = phonon.get_thermal_properties_dict()
+    with open('tp.pkl', 'wb') as f:
+        pickle.dump(tp_dict, f)
     phonon.plot_thermal_properties().savefig('therm_cmd.png')
 
+# postprocess()
+
+def load_tp():
+    with open('tp.pkl', 'rb') as f:
+        tp_dict = pickle.load(f)
+    print(tp_dict)
+
+load_tp()
 
 def preprocess():
     with open('tblg.slurm', 'w') as f:
@@ -262,6 +274,8 @@ phonolammps in.graphene --dim 2 2 2 -c POSCAR_unitcell
 
     # os.system('bsub lammps.lsf')
     # os.chdir('..')
+
+
 
 def test_phonolammps():
     os.chdir('data')
