@@ -88,27 +88,28 @@ class Job(object):
         with open('lmp.in', 'w') as f:
             f.write(template.format(**self.__dict__))
 
-        os.system('lmp_mpi -in lmp.in')
+        # os.system('lmp_mpi -in lmp.in')
 
+        with open('phlmp.slurm', 'w') as f:
+            f.write(
+f'''#! /bin/bash
+#SBATCH --job-name="{self.dirname}"
+#SBATCH --time=4:00:00
+#SBATCH --partition="secondary"
+#SBATCH --cpus-per-task=20
+
+cd $SLURM_SUBMIT_DIR
+
+phonolammps lmp.in --dim 2 2 2 -c POSCAR_unitcell
+''')
+
+        os.system('sbatch phlmp.slurm')
         os.chdir(workdir)
-
-# def run_phlmp():
-
-#     with open('phlmp.slurm', 'w') as f:
-#         f.write(
-# '''#! /bin/bash
-# #SBATCH --job-name="phlmp"
-# #SBATCH --time=4:00:00
-# #SBATCH --partition="secondary"
-# #SBATCH --cpus-per-task=1
-
-# cd $SLURM_SUBMIT_DIR
-
-# ''')
 
 params = {
     'pot': ['lj', 'rebo', 'tersoff'],
-    'angle': [3.5, 4.4, 7.3, 21.7, 31.2]
+    # 'angle': [3.5, 4.4, 7.3, 21.7, 31.2]
+    'angle': [0.0]
 }
 
 for p in itertools.product(*params.values()):
