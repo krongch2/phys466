@@ -12,14 +12,15 @@ import seaborn as sns
 plt.rc('font', family='serif')
 plt.rc('text', usetex=True)
 
-def read_tp():
+def read_fc():
 
     l = []
     os.chdir('data')
-    for dirname in os.listdir('.'):
+    for dirname in sorted(os.listdir('.')):
 
         os.chdir(dirname)
-        if os.path.isfile('FORCE_CONSTANTS') and not os.path.isfile('tp.pkl'):
+        os.system('rm tp.pkl')
+        if os.path.isfile('FORCE_CONSTANTS') and not os.path.isfile('tp.pkl') and (dirname == 'airebo_00.0' or dirname == 'airebo_21.7'):
             print(dirname)
             with open('pp.slurm', 'w') as f:
                 f.write(
@@ -33,7 +34,7 @@ cd $SLURM_SUBMIT_DIR
 
 python ../../postprocess.py
 ''')
-            os.system('sbatch pp.slurm')
+            # os.system('sbatch pp.slurm')
             os.system('python ../../postprocess.py')
 
         if os.path.isfile('tp.pkl'):
@@ -59,6 +60,8 @@ python ../../postprocess.py
     d = pd.concat(l, ignore_index=True)
     d.to_csv('tp.csv', index=False)
 
+read_fc()
+
 def plot(csv, output):
     d = pd.read_csv(csv)
     d['C_per_atom'] = d['heat_capacity'] / d['natoms']
@@ -83,4 +86,4 @@ def plot(csv, output):
     plt.savefig(f'{output}', bbox_inches='tight')
     os.system(f'rsub {output}')
 
-plot('tp.csv', 'tp.png')
+# plot('tp.csv', 'tp.png')
