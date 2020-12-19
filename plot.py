@@ -181,55 +181,6 @@ def read_pp():
     pd.concat(dos_l, ignore_index=True).to_csv('dos.csv', index=False)
     pd.concat(band_l, ignore_index=True).to_csv('band.csv', index=False)
 
-def plot_heat():
-    d = pd.read_csv('heat.csv')
-    d['C'] = d['heat_capacity'] / d['natoms']
-    d['S'] = d['entropy'] / d['natoms']
-    d['F'] = d['free_energy'] / d['natoms']
-
-    def subtract(g):
-        mask = g['angle'] == '00.0'
-        g['dC'] = g['C'] - float(g.loc[mask, 'C'])
-        g['dS'] = g['S'] - float(g.loc[mask, 'S'])
-        g['dF'] = g['F'] - float(g.loc[mask, 'F'])
-        return g
-
-    p = d.groupby(['temperatures', 'pot']).apply(subtract)
-    print(p)
-
-    # g = sns.FacetGrid(p, col='pot', hue='angle', height=3, sharey=False)
-    # g.map(sns.scatterplot, 'temperatures', 'dC')
-    g = sns.FacetGrid(d, col='pot', hue='angle', height=3, sharey=False)
-    g.map(sns.scatterplot, 'temperatures', 'C')
-    for ax in g.axes.flatten():
-        ax.set(
-            xlabel='$T~(\\mathrm{K})$',
-            ylabel='$\\Delta C~(\\mathrm{J/K})$'
-        )
-
-    g.add_legend()
-    output = 'heat.png'
-    plt.savefig(f'{output}', bbox_inches='tight')
-    os.system(f'rsub {output}')
-
-def plot_dos():
-    d = pd.read_csv('dos.csv')
-    d['dos'] = d['total_dos'] / d['natoms']
-    d['omega'] = d['frequency_points']*thz_to_cm1
-    d = d.loc[~d['angle'].isin(['aa', 'mo']), :]
-
-    g = sns.FacetGrid(d, col='pot', hue='angle', height=3, sharex=False, sharey=False)
-    g.map(sns.lineplot, 'omega', 'dos')
-    for ax in g.axes.flatten():
-        ax.set(
-            xlabel='$\\omega~(\\mathrm{cm}^{-1})$',
-            ylabel='$D(\\omega)$'
-        )
-    g.add_legend()
-    output = 'dos.png'
-    plt.savefig(f'{output}', bbox_inches='tight')
-    os.system(f'rsub {output}')
-
 def plot_band_mo():
     d = pd.read_csv('band.csv')
     options = {
@@ -290,41 +241,103 @@ def plot_band_ab_notwist():
 
 def plot_band_ab():
     d = pd.read_csv('band.csv', dtype=str)
+    d['angle'] = d['angle'].map({'aa': 'AA', '00.0': 'AB', '13.2': '13.2', '21.7': '21.7'})
+    types_dict = {'q': float, 'freq': float, 'band': int, 'natoms': int}
+    for col, col_type in types_dict.items():
+        d[col] = d[col].astype(col_type)
+
     options = {
         'pot': 'airebo'
     }
     r = pd.read_csv('exp_ab.csv', header=None)
     r.columns = ['q', 'freq']
-    print(r)
     d = d.loc[mask(d, options), :]
-    angles = d['angle'].unique()
-    print(angles)
-    # angles = ['07.3', '13.2', '21.7', 'aa']
-    # print(angles)
-    return
-    fig, axes = plt.subplots(nrows=1, ncols=len(angles), figsize=(3, 3))
+    angles = ['AA', 'AB', '13.2', '21.7']
+
+    fig, axes = plt.subplots(nrows=1, ncols=len(angles), figsize=(6, 3), sharey=True)
     for i, angle in enumerate(angles):
         ax = axes[i]
         dd = d.loc[d['angle'] == angle, :]
+        subplot = chr(ord('`') + i + 1)
         for band in dd['band'].unique():
             ddd = dd.loc[dd['band'] == band, :]
             ax.plot(ddd['q'], ddd['freq'], '-', color=colors[0])
             xlim = [0, 1/3]
+            if 'A' in angle:
+                deg = ''
+            else:
+                deg = '$^{\\circ}$'
             ax.set(
                 xticklabels=['$\\Gamma$', 'K'], xticks=xlim, xlim=xlim,
-                title=f'AIREBO, AB Stacking'
+                title=f'({subplot}) {angle}{deg}'
             )
-        ax.plot(r['q'], r['freq'], 'x', color=colors[1])
-        ax.set(ylabel='$\\omega~(\\mathrm{cm}^{-1})$')
-        fig.tight_layout()
-        output = 'band_ab.pdf'
-        plt.savefig(f'{output}', bbox_inches='tight')
-        if 'png' in output:
-            os.system(f'rsub {output}')
+        if angle == 'AB':
+            ax.plot(r['q'], r['freq'], 'x', color=colors[1])
+        if i == 0:
+            ax.set(ylabel='$\\omega~(\\mathrm{cm}^{-1})$')
+    fig.tight_layout()
+    output = 'band_ab.pdf'
+    plt.savefig(f'{output}', bbox_inches='tight')
+    if 'png' in output:
+        os.system(f'rsub {output}')
+
+def plot_dos():
+    d = pd.read_csv('dos.csv')
+    d['pot'] = d['pot'].map({'airebo': 'AIREBO', 'tersoff': 'Tersoff', 'lj': 'LJ'})
+    d['dos'] = d['total_dos'] / d['natoms']
+    d['omega'] = d['frequency_points']*thz_to_cm1
+    d = d.loc[~d['angle'].isin(['aa', 'mo']), :]
+    d = d.loc[d['pot'] == 'AIREBO', :]
+
+    g = sns.FacetGrid(d, hue='angle', height=3, sharex=False, sharey=False)
+    g.map(sns.lineplot, 'omega', 'dos')
+    for ax in g.axes.flatten():
+        ax.set(
+            xlabel='$\\omega~(\\mathrm{cm}^{-1})$',
+            ylabel='$g(\\omega)$'
+        )
+    g.add_legend()
+    output = 'dos.pdf'
+    plt.savefig(f'{output}', bbox_inches='tight')
+    if 'png' in output:
+        os.system(f'rsub {output}')
+
+def plot_heat():
+    d = pd.read_csv('heat.csv')
+    d['C'] = d['heat_capacity'] / d['natoms']
+    d['S'] = d['entropy'] / d['natoms']
+    d['F'] = d['free_energy'] / d['natoms']
+    d = d.loc[d['pot'] == 'airebo', :]
+    d = d.loc[d['angle'] != '04.4', :]
+
+    def subtract(g):
+        mask = g['angle'] == '00.0'
+        g['dC'] = g['C'] - float(g.loc[mask, 'C'])
+        g['dS'] = g['S'] - float(g.loc[mask, 'S'])
+        g['dF'] = g['F'] - float(g.loc[mask, 'F'])
+        return g
+
+    p = d.groupby(['temperatures', 'pot']).apply(subtract)
+
+    g = sns.FacetGrid(p, hue='angle', height=3, sharey=False)
+    g.map(sns.lineplot, 'temperatures', 'dC')
+    for ax in g.axes.flatten():
+        ax.set(
+            xlabel='$T~(\\mathrm{K})$',
+            ylabel='$\\Delta C~(\\mathrm{J/K/atom})$'
+        )
+
+    g.add_legend()
+    output = 'heat.pdf'
+    plt.savefig(f'{output}', bbox_inches='tight')
+    if 'png' in output:
+        os.system(f'rsub {output}')
 
 
 # read_pp()
-# plot_heat()
-# plot_dos()
 # plot_band_mo()
-plot_band_ab()
+# plot_band_ab()
+# plot_dos()
+plot_heat()
+
+
