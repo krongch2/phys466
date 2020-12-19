@@ -71,15 +71,17 @@ class Job(object):
                 # print(f'"{k}" is not a keyword for Job')
                 # raise AssertionError(f'"{k}" is not a keyword for Job')
 
-            setattr(self, k, to_numeric(options[k]))
+            # setattr(self, k, to_numeric(options[k]))
+            setattr(self, k, options[k])
 
     def predefine(self):
         '''
         Sets dependent attributes from the starting options
         '''
-        self.geom_tail = f'{self.angle:04.1f}.pos'
+        self.geom_tail = f'{self.angle}.pos'
+        print(self.geom_tail)
         self.geom_full_path = os.path.join(self.geom_path, self.geom_tail)
-        self.dirname = os.path.join(self.data_path, f'{self.pot}_{self.angle:04.1f}')
+        self.dirname = os.path.join(self.data_path, f'{self.pot}_{self.angle}')
         self.pot_section = pots[self.pot].format(**self.__dict__)
 
     def run_min(self):
@@ -168,7 +170,6 @@ f'''#! /bin/bash
 #SBATCH --time=4:00:00
 #SBATCH --partition="secondary"
 #SBATCH --cpus-per-task=20
-#SBATCH -e %x.e%A
 
 cd $SLURM_SUBMIT_DIR
 
@@ -180,16 +181,16 @@ phonolammps phlmp.in --dim 2 2 2 -c POSCAR_unitcell
 
 params = {
     'pot': ['lj', 'airebo', 'tersoff'],
-    # 'pot': ['lj', 'airebo'],
-    # 'angle': [0.0, 3.5, 4.4, 7.3, 21.7, 13.2]
-    'angle': [0.0, 13.2, 21.7]
+    # 'angle': ['04.4', '07.3']
+    # 'angle': ['00.0', '03.5', '13.2', '21.7', 'aa']
+    'angle': ['mo']
 }
 
 for p in itertools.product(*params.values()):
     options = dict(zip(params.keys(), p))
     job = Job(options)
 
-    if os.path.isfile(os.path.join(job.dirname, 'FORCE_CONSTANTS')):
-        continue
+    # if os.path.isfile(os.path.join(job.dirname, 'FORCE_CONSTANTS')):
+    #     continue
     job.run_min()
     job.run_phlmp()
