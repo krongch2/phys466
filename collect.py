@@ -8,7 +8,7 @@ def read_fc():
     for dirname in sorted(os.listdir('.')):
 
         os.chdir(dirname)
-        if os.path.isfile('FORCE_CONSTANTS') and not os.path.isfile('pp.pkl'):
+        if os.path.isfile('FORCE_CONSTANTS') and 'mo' in dirname:
             print(dirname)
             with open('pp.slurm', 'w') as f:
                 f.write(

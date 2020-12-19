@@ -15,7 +15,7 @@ def run_phonon():
 
     phonon.set_mesh([20, 20, 20])
     path = [[0, 0, 0], [2/3, 1/3, 0]]
-    labels = ["$\\Gamma$", "K"]
+    labels = ['$\\Gamma$', 'K']
     qpoints, connections = get_band_qpoints_and_path_connections(path, npoints=51)
     phonon.run_band_structure(qpoints, path_connections=connections, labels=labels, with_eigenvectors=True)
     phonon.set_total_DOS()
